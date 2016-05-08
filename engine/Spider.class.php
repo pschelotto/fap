@@ -155,7 +155,7 @@ class Spider
 //				CURLOPT_PROXY			=> "localhost:9050",
 			);
 
-			$intentos = 0;
+			$intentos = 1;
 			do{
 	/*
 				if( sfConfig::get('app_use_proxys', false) )

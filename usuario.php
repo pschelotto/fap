@@ -111,11 +111,14 @@ class Usuario{
 		foreach($banners as $i => $banner)
 		{
 			$root2 = $banner->click();
-			preg_match('/"(class\/.*?.php.*?)"/',$root2->getSpider(),$match);
+			if($root2)
+			{
+				preg_match('/"(class\/.*?.php.*?)"/',$root2->getSpider(),$match);
 
-			consoleWait(30, "$i/".$banners->length()." esperando ad");
+				consoleWait(30, "$i/".$banners->length()." esperando ad");
 
-			$this->spider2->get("http://www.fortadpays.com/".$match[1]);
+				$this->spider2->get("http://www.fortadpays.com/".$match[1]);
+			}
 		}
 	}
 

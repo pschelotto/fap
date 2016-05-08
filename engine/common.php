@@ -183,6 +183,9 @@
 
 	function normalize($txt)
 	{
+		if(!is_string($txt))
+			throw new Exception(print_r($txt,1)."no es un string");
+
 		return trim(preg_replace('/\s+/',' ',$txt));
 	}
 
