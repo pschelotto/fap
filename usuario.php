@@ -20,7 +20,7 @@ class Usuario{
 	function login()
 	{
 		echo "login {$this->user}            \n";
-		$this->spider->post("https://www.fortadpays.com/",array(
+		$this->spider->post("https://www.fortadpays.com/themes/common/login.php",array(
 			'user_name' => $this->user,
 			'password' => rawurlencode($this->pass),
 			'submit'=>'LOGIN'

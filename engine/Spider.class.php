@@ -139,9 +139,9 @@ class Spider
 				CURLOPT_HEADER 			=> true,
 				CURLOPT_RETURNTRANSFER 	=> true,
 	//			CURLOPT_FOLLOWLOCATION	=> true,
-				CURLOPT_TIMEOUT 		=> 10,
+				CURLOPT_TIMEOUT 		=> 120,
 
-				CURLOPT_CONNECTTIMEOUT 	=> 30,
+				CURLOPT_CONNECTTIMEOUT 	=> 120,
 				CURLINFO_HEADER_OUT		=> true,
 				CURLOPT_SSLVERSION		=> $this->ssl_version,
 				CURLOPT_ENCODING		=> "gzip,deflate,sdch",
@@ -189,7 +189,7 @@ $r=microtime(true);
 
 				if( !$result = curl_exec($ch)) 
 				{
-					echo "\n".date('H:i')." ";
+					echo "\nSin respuesta cargando: $url ... reintentando $intentos/100\n";
 					//trigger_error(curl_error($ch)); 
 					sleep(1);
 					$redirect = true;
