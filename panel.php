@@ -94,7 +94,7 @@
 					}
 				}
 			}
-			$conectado = (strtotime('now') - $fecha_user_data)/60 < 20;
+			$conectado = (strtotime('now') - $fecha_user_data)/60 < 30;
 		?>
 		
 		<div class='estado <?php echo $conectado?'conectado':'' ?>'></div>

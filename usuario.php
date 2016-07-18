@@ -39,8 +39,16 @@ class Usuario{
 
 	function memberoverview()
 	{
-		$root = $this->get("https://www.fortadpays.com/member/memberoverview.php");
+		for($retry=0;$retry<5;$retry++)
+		{
+			$root = $this->get("https://www.fortadpays.com/member/memberoverview.php");
+			if($root->select('.click-today'))
+				break;
 
+			"Error cargando memberoverview $retry\n";
+		}
+
+		
 		$count_down = 0;
 		if(preg_match('/countdown_start.*?\((\d+)\);/',$this->spider,$match))
 			$count_down = $match[1];
@@ -50,23 +58,54 @@ class Usuario{
 		if($root->select('#basic-modal-content'))
 		{
 //			echo "      .. esperando banner   \r";
-			consoleWait(8, "esperando banner");
+			consoleWait(8, "esperando banner inicial");
 			$this->spider->post("http://www.fortadpays.com/member/function.ajax.php","func=loginviewed");
+			echo "\n";
 		}
 
 		if(strtotime('+30 minute') > $this->ver_anuncios_en || $count_down==0)
 		{
+			echo "Mirando los anuncios diarios...        \n";
 			$this->verAnuncios();
 			echo sprintf("%10s",$this->user)." - anuncios vistos   \n";
 		}
 
-		$this->ganarDinero();
+//		$this->ganarDinero();
 
 		$gan = normalize($root->find('Ganancias de Packs')->parent()->parent()->getNext()->contents());
 		$this->ganancias = sprintf("%.02f",str_replace('$','',$gan));
 
 		$gan = normalize($root->find('Packs activos / completados / caducados / totales')->parent()->parent()->getNext()->contents());
 		$this->shares_data = $gan;
+
+		$this->withdraw();
+	}
+
+	function withdraw()
+	{
+		$pregunta_map = array(
+			'pschelot' => 'Junti',
+			'lestefania' => 'Dixie',
+		);
+		if(!isset($pregunta_map[$this->user]))
+			return;
+
+		$root = $this->get('https://www.fortadpays.com/member/withdraw.php');
+		$max = normalize($root->find('Maximum Withdrawal Amount')->getNext()->contents());
+		$max = str_replace('$','',$max);
+		
+		if(!$max)
+			return;
+		
+		$form = $root->select('form(0)');
+		$root = $form->submit(array(
+			'amount' => $max
+		));
+		
+		$form = $root->select('form(0)');
+		$root = $form->submit(array(
+			'security_answer' => $pregunta_map[$this->user],
+		),"https://www.fortadpays.com/member/withdraw.php?show=sec");
 	}
 
 	function verAnuncios()
@@ -74,25 +113,26 @@ class Usuario{
 		$root = $this->get('https://www.fortadpays.com/member/viewad.php');
 		$banners = $root->select('.bannerlink');
 
-		$this->spider2 = new Spider($this->spider);
+		$spider2 = new Spider($this->spider);
 		foreach($banners as $i => $banner)
 		{
+			$href = $banner->getAttr('href');
 			for($retry=0;$retry<20;$retry++)
 			{
-				$root2 = $banner->click();
-				if(!$root2->getSpider())
+				$root2 = $spider2->get($href);
+				if(!$spider2->html)
 				{
-					consoleWait(5,"Error cargando ".$banner->getAttr('href'));
+					consoleWait(5,"Error cargando ".$href);
 					continue;
 				}
 				break;
 			}
-			
-			preg_match('/"(class\/.*?.php.*?)"/',$root2->getSpider(),$match);
 
-			consoleWait(10, "$i/".$banners->length()." esperando ad");
-
-			$this->spider2->get("http://www.fortadpays.com/".$match[1]);
+			if( preg_match('/"(class\/.*?.php.*?)"/',$spider2->html,$match) )
+			{
+				consoleWait(10, "$i/".$banners->length()." esperando ad");
+				$spider2->get("http://www.fortadpays.com/".$match[1]);
+			}
 		}
 		
 		$this->memberoverview();
@@ -102,22 +142,27 @@ class Usuario{
 
 		$root = $this->spider->get('https://www.fortadpays.com/member/viewptcad.php');
 		$banners = $root->select('.earn_button a');
+		if(!$banners)
+			return;
 
-		if($banners)
-			echo "Anuncios: ".$banners->length()."                \n";
+		$hrefs = array();
+		foreach($banners as $banner)
+			if($href = trim($banner->getAttr('href')))
+				$hrefs[] = $href;
 
-		$this->spider2 = new Spider($this->spider);
-		if($banners)
-		foreach($banners as $i => $banner)
+		if(count($hrefs))
+			echo "Anuncios: ".count($hrefs)."                \n";
+
+		foreach($hrefs as $i => $href)
 		{
-			$root2 = $banner->click();
-			if($root2)
+			$root = $this->spider->get($href);
+			if($root)
 			{
-				preg_match('/"(class\/.*?.php.*?)"/',$root2->getSpider(),$match);
-
-				consoleWait(30, "$i/".$banners->length()." esperando ad");
-
-				$this->spider2->get("http://www.fortadpays.com/".$match[1]);
+				if(preg_match('/"(class\/.*?.php.*?)"/',$this->spider,$match))
+				{
+					consoleWait(30, "$i/".count($hrefs)." esperando ad");// - http://www.fortadpays.com/".$match[1]);
+					$this->spider->get("http://www.fortadpays.com/".$match[1]);
+				}
 			}
 		}
 	}
@@ -167,6 +212,8 @@ class Usuario{
 			echo " - purchase $amount !";
 		}
 
+		$root = $this->get("https://www.fortadpays.com/member/shares.php");
+
 		$this->cash = floatval(str_replace('$','',$root->find('Tu balance en cash')->parent()->getNext()->contents()));
 		$this->repurchase = floatval(str_replace('$','',$root->find('Tu balance para recompra')->parent()->getNext()->contents()));
 		$this->total_balance = floatval(str_replace('$','',$root->find('Balance total')->parent()->getNext()->contents()));
@@ -211,11 +258,11 @@ function consoleWait($segs,$message=null)
 {
 //	echo " $segs    \r";sleep($segs);return;
 	if($message)
-		echo "      .. $message                          \r";
+		echo "      .. $message                            \r";
 
 	for($i=$segs;$i>=0;$i--)
 	{
-		echo " $i   \r";
+		echo " $i  \r";
 		sleep(1);
 	}
 }
