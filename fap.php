@@ -57,6 +57,39 @@ while(true)
 		file_put_contents('history.json',json_encode($hist));
 	}
 
-	echo consoleWait(15*60);
+	
+	$hora = date('Y-m-d',strtotime('+1 day')).' 00:00:00';
+
+	if(strtotime('now')>=strtotime($hora.' -5 min') && strtotime('now')<strtotime($hora.' +5 min'))
+	{
+		echo date('H:i:s')." Entramos en modo withdraw, sleep principal en pausa\n";
+
+		while(strtotime('now')>=strtotime($hora.' -5 min') && strtotime('now')<strtotime($hora.' +5 min'))
+		{
+			echo date('H:i:s')."                                 \r";
+			if(strtotime('now')>=strtotime($hora.'-10 sec'))
+			{
+				echo date('H:i:s')." Dentro ..                  \r";
+				foreach($usuarios as $username => $usuario)
+					if( !( isset($ret_map[$usuario->user]) && $ret_map[$usuario->user]) )
+						$ret_map[$usuario->user] = $usuario->withdraw();
+			}
+			sleep(1);
+		}
+		echo "\n".date('H:i:s')." Saliendo ..              \n";
+	}
+	else
+	{
+		$segs = 15*60;
+
+		for($i=$segs;$i>=0;$i--)
+		{
+			if(strtotime('now')>=strtotime($hora.' -5 min') && strtotime('now')<strtotime($hora.' +5 min'))
+				break;
+
+			echo " $i  \r";
+			sleep(1);
+		}	
+	}
 }
 

@@ -70,7 +70,7 @@ class Usuario{
 			echo sprintf("%10s",$this->user)." - anuncios vistos   \n";
 		}
 
-//		$this->ganarDinero();
+		$this->ganarDinero();
 
 		$gan = normalize($root->find('Ganancias de Packs')->parent()->parent()->getNext()->contents());
 		$this->ganancias = sprintf("%.02f",str_replace('$','',$gan));
@@ -78,7 +78,7 @@ class Usuario{
 		$gan = normalize($root->find('Packs activos / completados / caducados / totales')->parent()->parent()->getNext()->contents());
 		$this->shares_data = $gan;
 
-		$this->withdraw();
+//		$this->withdraw();
 	}
 
 	function withdraw()
@@ -88,14 +88,33 @@ class Usuario{
 			'lestefania' => 'Dixie',
 		);
 		if(!isset($pregunta_map[$this->user]))
-			return;
+			return false;
 
 		$root = $this->get('https://www.fortadpays.com/member/withdraw.php');
+
 		$max = normalize($root->find('Maximum Withdrawal Amount')->getNext()->contents());
 		$max = str_replace('$','',$max);
-		
 		if(!$max)
-			return;
+		{
+			echo date('H:i:s')." Aún no..                                             \r";
+			return false;
+		}
+
+		$cash = floatval(str_replace('$','',$root->find('Your Current Balance')->parent()->getNext()->contents()));
+		if($cash < $max)
+		{
+			echo date('H:i:s')." falta cash                                           \r";
+			return true;
+		}
+
+/*		
+		global $email_sended;
+		if(!isset($email_sended))
+			Usuario::sendmail("Withdraw en FAP","Withdraws con Payza abiertos \n".date('d/m/Y H:i:s'));
+		$email_sended = true;
+*/
+
+
 		
 		$form = $root->select('form(0)');
 		$root = $form->submit(array(
@@ -106,6 +125,15 @@ class Usuario{
 		$root = $form->submit(array(
 			'security_answer' => $pregunta_map[$this->user],
 		),"https://www.fortadpays.com/member/withdraw.php?show=sec");
+
+		if(preg_match('/jAlert\(\'(.*?)\'/',$this->spider,$match))
+		{
+			echo "Withdraw {$this->user}: {$match[1]}\n";
+			return false;
+		}
+
+		echo "Withdraw {$this->user}: $max!\n";
+		return true;
 	}
 
 	function verAnuncios()
@@ -177,18 +205,22 @@ class Usuario{
 
 		if(!isset($this->data['guardar']))
 			$this->data['guardar'] = 0;
+
+		$coste_pack = floatval(str_replace('$','',$root->find('Coste de Ad Pack')->parent()->getNext()->contents()));
+
 /*
 		$amount = floor($this->total_balance);
 		if($this->data['guardar'] && $this->data['guardar'] > 0)
 		{
-*/			if($this->data['guardar'] > $this->cash + 1)
+*/			if($this->data['guardar'] > $this->cash + $coste_pack)
 				$amount = floor($this->repurchase);
 			else
 				$amount = floor($this->repurchase + ($this->cash - $this->data['guardar']));
 //		}
 
+
 		echo sprintf("%10s",$this->user)." - total_blance: {$this->total_balance} (rep: {$this->repurchase})";
-		if($amount >= 1)
+		if($amount >= $coste_pack)
 		{
 			$form = $root->select('form');
 			if($form)
@@ -199,11 +231,20 @@ class Usuario{
 					'tos' => 1,
 				),'https://www.fortadpays.com/member/shares.php');
 
+				if($root->find('You Do Not Have Sufficient Balance To Purchase This Share')->getText())
+				{
+					$this->get("https://www.fortadpays.com/member/memberoverview.php");
+					echo "\nNo hay suficiente dinero para comprar el pack\n";
+					return;
+				}
+
 				$form = $root->select('form');
 			}
+
 			if(!$form)
 			{
-				consoleWait(60,"\nerror en submit de purchase, esperando a reintentar");
+				consoleWait(60,"\n       error en submit de purchase, esperando a reintentar");
+				echo "\n";
 				return $this->login();
 				
 			}
@@ -221,7 +262,7 @@ class Usuario{
 		echo "\n";
 
 //		if($this->total_balance >= 1)
-			$this->memberoverview();
+		$this->get("https://www.fortadpays.com/member/memberoverview.php");
 	}
 
 	function get($url)
@@ -251,6 +292,44 @@ class Usuario{
 		}
 
 		return $root;
+	}
+
+
+	static function sendmail_old($titulo, $mensaje){
+
+		include('config_sendmail.php');
+
+		$cabeceras = 'From: '.$nombre_from."\r\n" .
+			'Reply-To: '.$nombre_to."\r\n" .
+			'X-Mailer: PHP/' . phpversion();
+
+		$headers  = 'From: '.$nombre_from. "\r\n" ;
+		$headers .= 'Reply-To: '. $nombre_to . "\r\n" ;
+		$headers .= "Return-Path: $from\r\n";
+		$headers .= 'X-Mailer: PHP/' . phpversion();
+		$headers .= "MIME-Version: 1.0\r\n";
+		$headers .= "X-Priority: 3\r\n";
+		$headers .= "Content-type: text/html; charset=iso-8859-1\r\n";   
+
+		mail($to, $titulo, $mensaje, $headers);
+	}
+
+	static function sendmail($titulo, $mensaje)
+	{
+		set_include_path('/home/ubuntu/pear/share/pear');
+		if(!@require_once("Mail.php"))
+			return Mercadona::sendmail_old($titulo,$mensaje);
+
+		include('config_sendmail.php');
+
+		$recipients = $from;
+
+		$headers["From"]    = $nombre_from;
+		$headers["To"]      = $nombre_to;
+		$headers["Subject"] = $titulo;
+
+		$mail_object = Mail::factory("smtp", $params);
+		$mail_object->send($recipients, $headers, $mensaje);
 	}
 }
 
