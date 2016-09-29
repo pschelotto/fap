@@ -220,13 +220,15 @@ class Usuario{
 
 
 		echo sprintf("%10s",$this->user)." - total_blance: {$this->total_balance} (rep: {$this->repurchase})";
-		if($amount >= $coste_pack)
+		if($coste_pack && $amount >= $coste_pack)
 		{
+			$cant = floor($amount/$coste_pack);
+
 			$form = $root->select('form');
 			if($form)
 			{
 				$root = $form->submit(array(
-					'position' => $amount,
+					'position' => $cant,
 					'repurchase' => 1,
 					'tos' => 1,
 				),'https://www.fortadpays.com/member/shares.php');
@@ -234,7 +236,7 @@ class Usuario{
 				if($root->find('You Do Not Have Sufficient Balance To Purchase This Share')->getText())
 				{
 					$this->get("https://www.fortadpays.com/member/memberoverview.php");
-					echo "\nNo hay suficiente dinero para comprar el pack\n";
+					echo "\nNo hay dinero suficiente para comprar el pack\n";
 					return;
 				}
 
@@ -250,7 +252,7 @@ class Usuario{
 			}
 			$root = $form->submit(array(),'https://www.fortadpays.com/member/shares.php');
 
-			echo " - purchase $amount !";
+			echo " - purchase $cant ".'$'.($cant*$coste_pack)." !";
 		}
 
 		$root = $this->get("https://www.fortadpays.com/member/shares.php");
