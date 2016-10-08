@@ -75,7 +75,16 @@ class Usuario{
 		$gan = normalize($root->find('Ganancias de Packs')->parent()->parent()->getNext()->contents());
 		$this->ganancias = sprintf("%.02f",str_replace('$','',$gan));
 
-		$gan = normalize($root->find('Packs activos / completados / caducados / totales')->parent()->parent()->getNext()->contents());
+
+//		$gan = normalize($root->find('Packs activos / completados / caducados / totales')->parent()->parent()->getNext()->contents());
+		$tabla_planes = $root->find('Plan Name')->parent()->parent()->parent();
+		$last_row = $tabla_planes->select('tr(4)');
+		$gan_str = $last_row->contents();
+		array_shift($gan_str);
+		
+		$gan = implode(' / ',$gan_str);
+
+
 		$this->shares_data = $gan;
 
 //		$this->withdraw();
@@ -198,10 +207,14 @@ class Usuario{
 	function purchase()
 	{
 		$root = $this->get("https://www.fortadpays.com/member/shares.php");
-
+/*
 		$this->cash = floatval(str_replace('$','',$root->find('Tu balance en cash')->parent()->getNext()->contents()));
 		$this->repurchase = floatval(str_replace('$','',$root->find('Tu balance para recompra')->parent()->getNext()->contents()));
 		$this->total_balance = floatval(str_replace('$','',$root->find('Balance total')->parent()->getNext()->contents()));
+*/
+		$this->cash = floatval(str_replace('$','',$root->find('Balance Wallet 1')->parent()->getNext()->contents()));
+		$this->total_balance = $this->cash;
+		$this->repurchase = 0;
 
 		if(!isset($this->data['guardar']))
 			$this->data['guardar'] = 0;
@@ -256,11 +269,13 @@ class Usuario{
 		}
 
 		$root = $this->get("https://www.fortadpays.com/member/shares.php");
-
+/*
 		$this->cash = floatval(str_replace('$','',$root->find('Tu balance en cash')->parent()->getNext()->contents()));
 		$this->repurchase = floatval(str_replace('$','',$root->find('Tu balance para recompra')->parent()->getNext()->contents()));
 		$this->total_balance = floatval(str_replace('$','',$root->find('Balance total')->parent()->getNext()->contents()));
-
+*/
+		$this->cash = floatval(str_replace('$','',$root->find('Balance Wallet 1')->parent()->getNext()->contents()));
+		$this->total_balance = $this->cash;
 		echo "\n";
 
 //		if($this->total_balance >= 1)
