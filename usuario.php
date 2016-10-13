@@ -70,6 +70,7 @@ class Usuario{
 			echo sprintf("%10s",$this->user)." - anuncios vistos   \n";
 		}
 
+
 		$this->ganarDinero();
 
 		$gan = normalize($root->find('Ganancias de Packs')->parent()->parent()->getNext()->contents());
@@ -78,7 +79,14 @@ class Usuario{
 
 //		$gan = normalize($root->find('Packs activos / completados / caducados / totales')->parent()->parent()->getNext()->contents());
 		$tabla_planes = $root->find('Plan Name')->parent()->parent()->parent();
+
 		$last_row = $tabla_planes->select('tr(4)');
+		if(!$last_row)
+			$last_row = $tabla_planes->select('tr(2)');
+		if(!$last_row)
+			echo $root;
+			
+
 		$gan_str = $last_row->contents();
 		array_shift($gan_str);
 		

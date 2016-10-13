@@ -159,6 +159,7 @@ function array_key_last($arr)
 
 function getGananciasDia($user)
 {
+	$arr = array();
 	foreach($user['ultimas_ganancias_dia'] as $dias => $ganancias)
 	{
 		if(!isset($user['ultimas_ganancias_dia'][$dias-1]))
